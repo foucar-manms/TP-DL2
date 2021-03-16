@@ -1,5 +1,6 @@
 # data
 data/
+RBM_structures/
 
 # Other files and folders
 __pycache__
