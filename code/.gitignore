@@ -1,6 +1,7 @@
 # data
 data/
 RBM_structures/
+DNN_structures/
 
 # Other files and folders
 __pycache__

@@ -3,7 +3,6 @@
     La construction de ce programme nécessite les fonctions suivantes
 """
 
-import sys
 import os
 import numpy as np
 import pickle as pkl
@@ -216,12 +215,13 @@ if __name__ == "__main__":
     input_dim = inputs.shape[1]
     hidden_dim = 100
     rbm_struct = RBMStruct(input_dim, hidden_dim)
-    
     rbm_struct = train_RBM(inputs, rbm_struct, lr=0.1, n_epochs=3000, batch_size=10)
+    
     try:
         pkl.dump(rbm_struct, open("RBM_structures\\RBM_structure_" + to_mimic + ".pkl", "wb"))
     except FileNotFoundError:
         os.mkdir("RBM_structures")
+        pkl.dump(rbm_struct, open("RBM_structures\\RBM_structure_" + to_mimic + ".pkl", "wb"))
     
     #rbm_struct = pkl.load(open("RBM_structures\\RBM_structure_h.pkl", "rb"))
     generer_image_RBM(n_imgs=6, rbm_struct=rbm_struct)
