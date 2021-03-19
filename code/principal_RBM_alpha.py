@@ -23,6 +23,7 @@ def lire_alpha_digit(char, path="data", file="binaryalphadigs.mat"):
             - char: either a string (one of '0', ..., '9', 'a', ..., 'z') or an integer
         (index between 0 and 35) corresponding to the character we want to learn
     """
+
     if not os.path.exists(path):
         os.mkdir(path)
     assert os.path.isfile(os.path.join(path, file)), (
@@ -56,7 +57,13 @@ def entree_sortie_RBM(inputs, rbm_struct):
         args:
             - inputs: array or similar object containing input data
             - rbm_struct: should be an instance of class RBMStruct
+
+        return:
+            an array containing the hidden units activated: p(h=1|x) = sigm(x^t.W + b_h)
     """
+
+    if len(inputs.shape) == 1:
+        inputs = np.expand_dims(inputs, 0)
     _, h_b, w = rbm_struct()
     assert inputs.shape[1] == rbm_struct.get_input_dim(), (
         "the size of the inputs data should match that of input bias ; " 
@@ -72,7 +79,12 @@ def sortie_entree_RBM(h_inputs, rbm_struct):
         args:
             - h_inputs: array or similar object containing hidden data
             - rbm_struct: should be an instance of class RBMStruct
+        return:
+            an array containing the visible units activated: p(x=1|h) = sigm(h^t.W^t + b_x)
     """
+
+    if len(h_inputs.shape) == 1:
+        h_inputs = np.expand_dims(h_inputs, 0)
     in_b, _, w = rbm_struct()
     assert h_inputs.shape[1] == rbm_struct.get_hidden_dim(), (
         "the size of the hidden inputs data should match that of output bias ; " 
@@ -197,6 +209,7 @@ class RBMStruct:
         self.input_bias = input_bias
         self.hidden_bias = hidden_bias
         self.weights = weights
+        return self
 
     def get_input_dim(self):
         return self.input_dim

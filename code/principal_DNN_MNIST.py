@@ -2,14 +2,23 @@
     un réseau de neurones profonds pré-entrainé par via un DBN
 """
 
+import numpy as np
 
-def calcul_softmax():
+from principal_RBM_alpha import RBMStruct, entree_sortie_RBM
+
+
+
+
+def calcul_softmax(inputs, rbm_struct):
     """ prend en argument un RBM, des données d’entrée et retourne des probabilités sur les
         unités de sortie à partir de la fonction softmax
     """
-    pass
+    
+    p_h = entree_sortie_RBM(inputs, rbm_struct)
+    softmax = np.exp(p_h) / np.sum(np.exp(p_h), axis=1)
+    return softmax
 
-def entree_sortie_reseau():
+def entree_sortie_reseau(inputs, dnn_struct):
     """ prend en argument un DNN, des données en entrée du réseau et retourne dans un tableau
         les sorties sur chaque couche cachées du réseau ainsi que les probabilités sur les
         unités de sortie.
