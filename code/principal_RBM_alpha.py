@@ -122,6 +122,7 @@ def train_RBM(inputs, rbm_struct, n_epochs=10, lr=0.01, batch_size=4):
                     ncols=100) as pbar:
             
             indexes = np.random.permutation(n_examples)
+            total_loss = 0.0
             
             for i in range(0, n_examples, batch_size):
                 batch_indexes = indexes[i:(i+batch_size)]
@@ -156,7 +157,8 @@ def train_RBM(inputs, rbm_struct, n_epochs=10, lr=0.01, batch_size=4):
                 reconstruction_err = np.sum(
                     np.sum((batch_in - batch_out)**2, axis=1), axis=0
                 ) / actual_batch_size
-                tqdm_dict['reconstruction quadratic error'] = reconstruction_err
+                total_loss += reconstruction_err
+                tqdm_dict['reconstruction quadratic error'] = total_loss / (i+1)
                 pbar.set_postfix(tqdm_dict)
                 pbar.update(1)
     return rbm_struct

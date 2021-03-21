@@ -59,7 +59,6 @@ def pretrain_DNN(inputs, dnn_struct, n_epochs, lr, batch_size):
         entree_sortie_RBM
     """
 
-    RBM_stack = []
     for i in range(len(dnn_struct.rbm_stack)):
         # get the dimension of the current layer and the next one
         rbm_struct = dnn_struct.make_rbm(i)
@@ -109,7 +108,9 @@ class DNNStruct:
     """ basic structure that contains the parameters of a DNN
 
         attributes:
-            - structure: list of sizes (input dim, output dim) for each dimension
+            - rbm_stack: list of tuples (in_b, h_b, w) that are the parameters of the RBM
+        at each layer of the DNN
+            - parameters: list of tuples (w, b) that are the parameters of each layer of the DNN
             - size: list of dimensions
             - input_dim: dimension of the input of the DNN ; corresponds to the first index
         of the list of sizes
@@ -145,23 +146,30 @@ class DNNStruct:
         )
         return string
 
-    def update_parameters(self, parameters):
-        """ update the DNN parameters """
-        self.parameters = parameters
-
     def update_layer(self, weights, bias, index):
         """ update the parameters of the index-th layer """
         self.parameters[index] = (weights, bias)
+        b_in = self.rbm_stack[index][0]
+        self.rbm_stack[index] = (b_in, bias, weights)
 
+    def update_parameters(self, parameters):
+        """ update the DNN parameters """
+        for i in range(len(parameters)):
+            self.update_layer(parameters[i], i)
+        
     def update_rbm(self, rbm_struct, index):
         """ update the parameters of the index-th RBM """
         self.rbm_stack[index] = rbm_struct()
+        self.parameters[index] = (rbm_struct()[2], rbm_struct()[1])
 
     def get_input_dim(self):
         return self.input_dim
     
     def get_output_dim(self):
         return self.output_dim
+
+    def get_parameters(self, index):
+        return self.parameters[index]
 
     def make_rbm(self, index):
         """ return an RBMStruct instance based on the parameters of the index-th RBM of the network """
@@ -173,27 +181,25 @@ class DNNStruct:
 
 
 
-
 if __name__ == "__main__":
     
-    to_mimic = '5'
+    to_mimic = '3'
     if isinstance(to_mimic, int):
         to_mimic = index2char(to_mimic)
     inputs = lire_alpha_digit(char=to_mimic)
     input_dim = inputs.shape[1]
-    net_size = [input_dim, 256, 128, 64]
+    net_size = [input_dim, 128, 64]
     dnn_struct = DNNStruct(net_size)
-    print(dnn_struct)
-    sys.exit()
+    
     dnn_struct = pretrain_DNN(inputs, dnn_struct, n_epochs=1000, lr=0.1, batch_size=10)
     try:
         pkl.dump(
-            dnn_struct, open(os.path.join(PATH_TO_STRUCTURES, "DNN_structure_") + to_mimic + ".pkl", "wb")
+            dnn_struct, open(os.path.join(PATH_TO_STRUCTURES, "DNN_structure_" + to_mimic + ".pkl"), "wb")
         )
     except FileNotFoundError:
         os.mkdir(PATH_TO_STRUCTURES)
         pkl.dump(
-            dnn_struct, open(os.path.join(PATH_TO_STRUCTURES, "DNN_structure_") + to_mimic + ".pkl", "wb")
+            dnn_struct, open(os.path.join(PATH_TO_STRUCTURES, "DNN_structure_" + to_mimic + ".pkl"), "wb")
         )
     #dnn_struct = pkl.load(open(os.path.join(PATH_TO_SRUCTURES, "dnn_structure_5.pkl"), "rb"))
     generer_image_DBN(6, dnn_struct, n_iter_gibbs=20)

@@ -7,6 +7,7 @@ CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
 
 IMAGE_SHAPE = {
     'binary_alpha_digits':(20,16),
+    'MNIST':(28,28)
 }
 
 def char2index(char):
@@ -33,5 +34,11 @@ def vec2img(flat_img, matrix_shape='binary_alpha_digits'):
     return flat_img.reshape(matrix_shape)
 
 def sigmoid(x):
-    """ return the sigmoid value function evaluated at x """
+    """ return the sigmoid value evaluated at x """
     return 1 / (1 + np.exp(-x))
+
+def cross_entropy(x, y):
+    """ return the cross entropy value between the distributions x and y """
+    if len(x.shape) == 1: x = np.expand_dims(x, axis=0)
+    if len(y.shape) == 1: x = np.expand_dims(y, axis=0)
+    return - np.sum(y * np.log(x), axis=1)
