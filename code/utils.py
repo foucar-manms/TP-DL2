@@ -1,6 +1,7 @@
 import sys
+import os
+import time
 import numpy as np
-from numpy.matrixlib.defmatrix import matrix
 
 
 CHARS = '0123456789abcdefghijklmnopqrstuvwxyz'
@@ -42,3 +43,7 @@ def cross_entropy(x, y):
     if len(x.shape) == 1: x = np.expand_dims(x, axis=0)
     if len(y.shape) == 1: x = np.expand_dims(y, axis=0)
     return - np.sum(y * np.log(x), axis=1)
+
+def monitor_experience(out_file):
+    """ write configurations and results of a DNN in a .txt file """
+    pass

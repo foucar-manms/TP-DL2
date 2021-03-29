@@ -7,12 +7,11 @@ import os
 import numpy as np
 import pickle as pkl
 import matplotlib.pyplot as plt
-from numpy.matrixlib.defmatrix import matrix
 
 from tqdm import tqdm
 from mlxtend.data import loadlocal_mnist
 
-from utils import cross_entropy, vec2img
+from utils import cross_entropy, vec2img, monitor_experience
 from principal_RBM_alpha import entree_sortie_RBM, lire_alpha_digit
 from principal_DBN_alpha import DNNStruct, generer_image_DBN, pretrain_DNN, PATH_TO_STRUCTURES
 
@@ -106,7 +105,7 @@ def retropropagation(inputs, labels, dnn_struct, lr, n_epochs, batch_size):
                     w = w - lr * np.dot(h.T, delta_2_prev) / actual_batch_size
                     b = b - lr * np.sum(delta_2_prev, axis=0) / actual_batch_size
                     dnn_struct.update_layer(w, b, j)
-                ###################
+                ###########################
 
                 tqdm_dict['cross-entropy loss'] = total_loss / (i+1)
                 pbar.set_postfix(tqdm_dict)
@@ -134,23 +133,44 @@ def test_DNN(dnn_struct, X, y):
 
 if __name__ == "__main__":
     
-    PATH = 'data'
-    FILES = [
+    PATH_TO_DATA = 'data'
+    PATH_TO_DNN = "DNN_structures"
+    PATH_TO_CONFIGS = "configs"
+
+    DATA_FILES = [
         "t10k-images.idx3-ubyte",
         "t10k-labels.idx1-ubyte",
         "train-images.idx3-ubyte",
         "train-labels.idx1-ubyte"
     ]
+    # use pretrained model ?
+    PRETRAIN = False
+    # file name to save the pretrained model ; will only be used if PRETRAIN is True
+    PRETRAIN_OUT = "dnn_pretrained.pkl"
+    SAVE = True
+    # file name to save the supervised fully trained model ; will only be used if SAVE is True
+    DNN_OUT = "dnn.pkl"
+    # digits on which the model is pretrained
+    PRETRAIN_DIGITS = (4,5)
+    assert all([0 <= x <= 9 for x in PRETRAIN_DIGITS]), "only one-character digits, between 0 and 9"
+    # file name if you want to use a pretrained model ; should be set to None otherwise
+    PRETRAIN_FILE = "pretrain_2.pkl"
+    # whether to store the data from experiment
+    MONITOR = True
+    # where to store data from experiment ; will only be used if MONITOR is True
+    RESULTS_OUT = "experiment.txt"
 
-    if not os.path.exists(PATH):
-        os.mkdir(PATH)
-    for f in FILES:
-        assert os.path.isfile(os.path.join(PATH, f)), (
+    # load data
+    if not os.path.exists(PATH_TO_DATA):
+        os.mkdir(PATH_TO_DATA)
+    for f in DATA_FILES:
+        assert os.path.isfile(os.path.join(PATH_TO_DATA, f)), (
             "the file {} does not exist in the {}\\ folder, make sure you have "
             "a {}\\ folder with {} in it (you may download it at "
             "http://yann.lecun.com/exdb/mnist/). You may also want "
-            "to check that the file name match yours".format(f, PATH, PATH, f)
+            "to check that the file name match yours".format(f, PATH_TO_DATA, PATH_TO_DATA, f)
         )
+    ###########
 
     X_train, y_train = loadlocal_mnist(
         images_path='data\\train-images.idx3-ubyte', 
@@ -160,33 +180,61 @@ if __name__ == "__main__":
         images_path='data\\t10k-images.idx3-ubyte', 
         labels_path='data\\t10k-labels.idx1-ubyte'
     )
-    n_classes = 10
+    n_classes = len(np.unique(y_test))
 
     train_labels = np.zeros(shape=(len(y_train), n_classes))
-    X = np.zeros(shape=(0, X_train.shape[1]))
+    X_pretrain = np.zeros(shape=(0, X_train.shape[1]))
     # one-hot encoding
     index = []
     for i in range(len(y_train)):
         train_labels[i][y_train[i]] = 1.
-        if y_train[i] == 3:
+        # extract only chosen data
+        if y_train[i] in PRETRAIN_DIGITS:
             index.append(i)
-    X = X_train[np.array(index)]
-    for i in range(len(X)):
-        X[i] = (X[i] != 0) * 1.
-    input_dim = X.shape[1]
-    size = [input_dim, 300, 200]
-    dnn_struct = DNNStruct(size)
-    """
-    dnn_struct = pretrain_DNN(X, dnn_struct, n_epochs=100, lr=0.01, batch_size=64)
-    generer_image_DBN(6, dnn_struct, img_shape='MNIST')
-    pkl.dump(dnn_struct, open("DNN_structures\\pretrain_1.pkl", "wb"))
-    """
-    net_size = size + [n_classes]
-    dnn_struct = DNNStruct(net_size)
-    pretrained = pkl.load(open("DNN_structures\\pretrain_1.pkl", "rb"))
-    for i in range(len(pretrained.parameters)):
-        dnn_struct.update_layer(*pretrained.parameters[i], i)
-    dnn_struct = retropropagation(X_train, train_labels, dnn_struct, lr=0.2, n_epochs=10, batch_size=64)
-    pkl.dump(dnn_struct, open("DNN_structures\\a_dnn.pkl", "wb"))
+    X_pretrain = X_train[np.array(index)]
+    # make the images binary
+    for i in range(len(X_pretrain)):
+        X_pretrain[i] = (X_pretrain[i] > np.max(X_pretrain[i] / 2)) * 1.
+    
+    input_dim = X_train.shape[1]
+    dbn_size = [input_dim, 256, 128]
+    
+    # pretrain a dnn
+    if PRETRAIN:
+        dnn_struct = DNNStruct(dbn_size)
+        dnn_struct = pretrain_DNN(X_pretrain, dnn_struct, n_epochs=70, lr=0.01, batch_size=64)
+        generer_image_DBN(6, dnn_struct, img_shape='MNIST', n_iter_gibbs=10)
+        pkl.dump(dnn_struct,
+            open(os.path.join(PATH_TO_STRUCTURES, PRETRAIN_OUT), "wb")
+        )
+    ################
+    
+    dnn_size = dbn_size + [n_classes]
+    dnn_struct = DNNStruct(dnn_size)
+    
+    # load a pretrained model set of parameters
+    if PRETRAIN_FILE:
+        pretrained = pkl.load(
+            open(os.path.join(PATH_TO_STRUCTURES, PRETRAIN_FILE), "rb")
+        )
+        for i in range(len(pretrained.parameters)):
+            dnn_struct.update_layer(*pretrained.parameters[i], i)
+    ###########################################
+    
+    dnn_struct = retropropagation(X_train, train_labels, dnn_struct, lr=0.2, n_epochs=10, batch_size=128)
+    
+    # save model
+    if SAVE:
+        pkl.dump(dnn_struct,
+            open(os.path.join(PATH_TO_STRUCTURES, DNN_OUT), "wb")
+        )
     acc = test_DNN(dnn_struct, X_test, y_test)
     print(acc)
+
+    # store the data from the experiment
+    """
+    if MONITOR:
+        if not os.path.exists(PATH_TO_CONFIGS):
+            os.mkdir(PATH_TO_CONFIGS)
+        monitor_experience(out_file=os.path.join(PATH_TO_CONFIGS, RESULTS_OUT))
+    """
