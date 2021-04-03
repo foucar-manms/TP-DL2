@@ -162,6 +162,13 @@ class DNNStruct:
         self.rbm_stack[index] = rbm_struct()
         self.parameters[index] = (rbm_struct()[2], rbm_struct()[1])
 
+    def stack_layer(self, dim):
+        """ adds a new layer at the end of the stack """
+        in_dim = self.rbm_stack[-1][2].shape[0]
+        self.rbm_stack.append(init_RBM(in_dim, dim))
+        _, b, w = self.rbm_stack[-1]
+        self.parameters.append((w,b))
+    
     def get_input_dim(self):
         return self.input_dim
     

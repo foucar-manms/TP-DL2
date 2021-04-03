@@ -17,6 +17,18 @@ from principal_DBN_alpha import DNNStruct, generer_image_DBN, pretrain_DNN, PATH
 
 
 
+PATH_TO_DATA = 'data'
+PATH_TO_DNN = "DNN_structures"
+PATH_TO_CONFIGS = "configs"
+
+DATA_FILES = [
+    "t10k-images.idx3-ubyte",
+    "t10k-labels.idx1-ubyte",
+    "train-images.idx3-ubyte",
+    "train-labels.idx1-ubyte"
+]
+
+
 
 def calcul_softmax(inputs, rbm_struct):
     """ prend en argument un RBM, des données d’entrée et retourne des probabilités sur les
@@ -133,16 +145,6 @@ def test_DNN(dnn_struct, X, y):
 
 if __name__ == "__main__":
     
-    PATH_TO_DATA = 'data'
-    PATH_TO_DNN = "DNN_structures"
-    PATH_TO_CONFIGS = "configs"
-
-    DATA_FILES = [
-        "t10k-images.idx3-ubyte",
-        "t10k-labels.idx1-ubyte",
-        "train-images.idx3-ubyte",
-        "train-labels.idx1-ubyte"
-    ]
     # use pretrained model ?
     PRETRAIN = False
     # file name to save the pretrained model ; will only be used if PRETRAIN is True
