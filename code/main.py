@@ -194,7 +194,7 @@ if __name__ == "__main__":
 
     # Train parametersz
 
-    n_epochs = 1
+    n_epochs = 10
     batch_size = 64
     lr = 0.01
 
