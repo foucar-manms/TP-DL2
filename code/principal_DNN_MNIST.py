@@ -175,12 +175,12 @@ if __name__ == "__main__":
     ###########
 
     X_train, y_train = loadlocal_mnist(
-        images_path='data\\train-images.idx3-ubyte', 
-        labels_path='data\\train-labels.idx1-ubyte'
+        images_path=os.path.join('data',"train-images.idx3-ubyte"), 
+        labels_path=os.path.join('data', 'train-labels.idx1-ubyte')
     )
     X_test, y_test = loadlocal_mnist(
-        images_path='data\\t10k-images.idx3-ubyte', 
-        labels_path='data\\t10k-labels.idx1-ubyte'
+        images_path=os.path.join('data', 't10k-images.idx3-ubyte'), 
+        labels_path=os.path.join('data', 't10k-labels.idx1-ubyte')
     )
     n_classes = len(np.unique(y_test))
 

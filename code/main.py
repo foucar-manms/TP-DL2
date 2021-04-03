@@ -29,7 +29,7 @@ from principal_DBN_alpha import DNNStruct, generer_image_DBN, pretrain_DNN, PATH
 from principal_DNN_MNIST import test_DNN, retropropagation, PATH_TO_DATA, PATH_TO_DNN, PATH_TO_CONFIGS, DATA_FILES
 
 
-TEST_SUBJECTS = ["Number of layers", "Number of hidden variables/units", "Training data size"]
+TEST_SUBJECTS = ["Number of layers", "Number of hidden units", "Training data size"]
 
 def init_dnns(dbn_size):
     """
@@ -64,12 +64,13 @@ def add_same_layer(dnn_1, dnn_2, size):
     dnn_2.stack_layer(n_classes)
     dnn_2.update_layer(*dnn_1.parameters[-1], len(dnn_2.parameters) - 1)
 
-def get_accuracies(
+def get_errors(
         dbn_size,
         pretrain_set,
         train_sets,
         test_sets,
-        accuracies,
+        train_error,
+        test_error,
         train_params=(10, 64, 0.01),
         pretrain_params=(10, 64, 0.01)
         ):
@@ -88,14 +89,16 @@ def get_accuracies(
           * int : number of epochs (default=10)
           * int : the batch size (default=64)
           * float : learning rate (default=0.01)
-        - accuracies : list of list, where to store accuracies of the models
-        - train_sets : tuple of 2 numpy.ndarray, representing features and targets for training
+        - train_error : list of list, where to store train_error of the models
+        - test_error : list of list, where to store test_error of the models
+        - train_sets : tuple of 3 numpy.ndarray, representing features and targets and one-hot
+        encoded targets for training
         - test_sets: tuple of 2 numpy.ndarray, representing features and targets for testing
     ## Returns:
         - None
     """
     # Retrieving the elements passed as arguments
-    X_train, train_labels = train_sets
+    X_train, y_train, train_labels = train_sets
     X_test, y_test = test_sets
     X_pretrain = pretrain_set
 
@@ -115,10 +118,6 @@ def get_accuracies(
     # Add identical output layers
     add_same_layer(dnn_pretrain, dnn_no_pretrain, n_classes)
 
-    # Training both networks
-    n_epochs = 10
-    lr = 0.01
-    batch_size = 64
 
     dnn_pretrain = retropropagation(
         X_train,
@@ -138,9 +137,15 @@ def get_accuracies(
     )
 
 
-    # Get accuracy of each model
-    accuracies[0].append(test_DNN(dnn_pretrain, X_test, y_test))
-    accuracies[1].append(test_DNN(dnn_no_pretrain, X_test, y_test))
+    # Get error of each model
+
+    ## On train set
+    train_error[0].append(1 - test_DNN(dnn_pretrain, X_train, y_train))
+    train_error[1].append(1 - test_DNN(dnn_no_pretrain, X_train, y_train))
+
+    ## On test set
+    test_error[0].append(1 - test_DNN(dnn_pretrain, X_test, y_test))
+    test_error[1].append(1 - test_DNN(dnn_no_pretrain, X_test, y_test))
 
 
 if __name__ == "__main__":
@@ -178,7 +183,7 @@ if __name__ == "__main__":
     }
 
     # Pretraining paramters
-    n_epochs_pretrain = 1
+    n_epochs_pretrain = 10
     batch_size_pretrain = 64
     lr_pretrain = 0.01
 
@@ -211,12 +216,12 @@ if __name__ == "__main__":
     ###########
 
     X_train, y_train = loadlocal_mnist(
-        images_path='data/train-images.idx3-ubyte', 
-        labels_path='data/train-labels.idx1-ubyte'
+        images_path=os.path.join('data', 'train-images.idx3-ubyte'), 
+        labels_path=os.path.join('data' ,'train-labels.idx1-ubyte')
     )
     X_test, y_test = loadlocal_mnist(
-        images_path='data/t10k-images.idx3-ubyte', 
-        labels_path='data/t10k-labels.idx1-ubyte'
+        images_path=os.path.join('data', 't10k-images.idx3-ubyte'), 
+        labels_path=os.path.join('data', 't10k-labels.idx1-ubyte')
     )
     n_classes = len(np.unique(y_test))
 
@@ -235,58 +240,91 @@ if __name__ == "__main__":
     input_dim = X_train.shape[1]
 
     print("Assessing ", TEST_SUBJECTS[idx].lower(), " influence on accuracy")
+
+    train_error = [[], []]
+    test_error = [[], []]
     if idx == 0:
-        
-        accuracies = [[], []]
 
         for depth in N_HIDDEN_LAYERS:
             dbn_size = [input_dim]
             for _ in range(depth):
                 dbn_size.append(200)
 
-            get_accuracies(
+            get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
-                train_sets=(X_train, train_labels),
+                train_sets=(X_train, y_train, train_labels),
                 test_sets=(X_test, y_test),
-                accuracies=accuracies,
+                train_error=train_error,
+                test_error=test_error,
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
             
 
     elif idx == 1:
-        accuracies = [[], []]
+
         for width in N_HIDDEN_UNITS:
             dbn_size = [input_dim] + [width] * REF_N_HIDDEN_LAYERS
 
-            get_accuracies(
+            get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
-                train_sets=(X_train, train_labels),
+                train_sets=(X_train, y_train, train_labels),
                 test_sets=(X_test, y_test),
-                accuracies=accuracies,
+                train_error=train_error,
+                test_error=test_error,
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
 
     else:
-        accuracies = [[], []]
         dbn_size = [input_dim] + [REF_N_HIDDEN_UNITS] * REF_N_HIDDEN_LAYERS
         for size in DATA_SIZE:
             size = min(size, X_train.shape[0])
-            indices = np.random.choice([range(X_train.shape[0])], size, replace=False)
+            indices = np.random.choice(np.arange(X_train.shape[0]), size, replace=False)
 
-            get_accuracies(
+            get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
-                train_sets=(X_train[indices], train_labels[indices]),
+                train_sets=(X_train[indices], y_train[indices], train_labels[indices]),
                 test_sets=(X_test, y_test),
-                accuracies=accuracies,
+                train_error=train_error,
+                test_error=test_error,
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
 
-    plt.plot(MAPPING[idx], accuracies[0], '.-', label="Pretrained model", color="green")
-    plt.plot(MAPPING[idx], accuracies[1], '.-', label="No pretraining", color="red")
-    plt.title("Influence of " + TEST_SUBJECTS[idx].lower())
+
+    # Plots
+    IMAGES_FOLDER = 'images'
+    FIG_SAVE_FOLDER = os.path.join(IMAGES_FOLDER, 'plots')
+    if not os.path.exists(IMAGES_FOLDER):
+        os.mkdir(IMAGES_FOLDER)
+    if not os.path.exists(FIG_SAVE_FOLDER):
+        os.mkdir(FIG_SAVE_FOLDER)
+
+    fig = plt.figure(figsize=(20,10))
+    plt.plot(MAPPING[idx], train_error[0], '.-', label="Pretrained model", color="green")
+    plt.plot(MAPPING[idx], train_error[1], '.-', label="No pretraining", color="red")
+    title = "Influence of " + TEST_SUBJECTS[idx].lower() + " on training"
+    plt.xlabel(TEST_SUBJECTS[idx])
+    plt.ylabel("Error")
+    plt.title(title)
+    plt.legend(loc="best")
+    figname = os.path.join(FIG_SAVE_FOLDER, title.replace(" ", "_")+".jpeg")
+    plt.savefig(figname)
+    plt.show()
+
+
+    fig = plt.figure(figsize=(20,10))
+    plt.plot(MAPPING[idx], test_error[0], '.-', label="Pretrained model", color="green")
+    plt.plot(MAPPING[idx], test_error[1], '.-', label="No pretraining", color="red")
+    title = "Influence of " + TEST_SUBJECTS[idx].lower() + " on testing"
+    plt.xlabel(TEST_SUBJECTS[idx])
+    plt.ylabel("Error")
+    plt.title(title)
+    plt.legend(loc="best")
+    figname = os.path.join(FIG_SAVE_FOLDER, title.replace(" ", "_")+".jpeg")
+    plt.savefig(figname)
+    plt.show()
