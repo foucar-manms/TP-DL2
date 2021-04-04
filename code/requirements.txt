@@ -1,0 +1,5 @@
+matplotlib==3.3.3
+mlxtend==0.18.0
+numpy==1.19.5
+scipy==1.6.1
+tqdm==4.54.0
