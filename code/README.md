@@ -1,1 +1,3 @@
 # TP-DL2
+
+Pour utiliser le code, lancer main.py, et se laisser guider...
