@@ -1,5 +1,8 @@
-""" On complètera au fur et à mesure un programme principal principal_DNN_MNIST permettant d’apprendre
-    un réseau de neurones profonds pré-entrainé par via un DBN
+""" 
+Ce fichier lance les tests sur les 3 expériences demandées dans le TP:
+- influence du nombre de couches cachées
+- influence de la taille des couches cachées
+- influence de la taille du réseau d'entraîenemt
 """
 
 import sys
