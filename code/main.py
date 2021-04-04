@@ -118,7 +118,7 @@ def get_errors(
     # Add identical output layers
     add_same_layer(dnn_pretrain, dnn_no_pretrain, n_classes)
 
-
+    print("training the pretrained network...")
     dnn_pretrain = retropropagation(
         X_train,
         train_labels,
@@ -127,6 +127,8 @@ def get_errors(
         n_epochs=n_epochs,
         batch_size=batch_size
     )
+    print()
+    print("training the network from scratch (no pretrain)...")
     dnn_no_pretrain = retropropagation(
         X_train,
         train_labels,
@@ -135,7 +137,7 @@ def get_errors(
         n_epochs=n_epochs,
         batch_size=batch_size
     )
-
+    print()
 
     # Get error of each model
 
@@ -168,10 +170,11 @@ if __name__ == "__main__":
     # Reference values to be fixed when other ones will change in the test phases
     REF_N_HIDDEN_LAYERS = 2
     REF_N_HIDDEN_UNITS = 200
-    REF_DATA_SIZE = 60000
+    #REF_DATA_SIZE = 60000
+    REF_DATA_SIZE = 30000
 
     # Values to be explored
-    N_HIDDEN_LAYERS = [2, 3, 4, 5, 6, 8, 10]
+    N_HIDDEN_LAYERS = [1, 2, 3, 4, 5, 6, 8, 10]
     N_HIDDEN_UNITS = [100, 200, 300, 500, 700, 900, 1000]
     DATA_SIZE = [1000, 2000, 3000, 5000, 7000, 10000, 20000, 30000, 60000]
 
@@ -183,16 +186,16 @@ if __name__ == "__main__":
     }
 
     # Pretraining paramters
-    n_epochs_pretrain = 10
+    n_epochs_pretrain = 5
     batch_size_pretrain = 64
     lr_pretrain = 0.01
-
+    
     PRETRAIN_DIGITS = (0,1,2,3,4,5,6,7,8,9)
     assert all([0 <= x <= 9 for x in PRETRAIN_DIGITS]), "only one-character digits, between 0 and 9"
     # file name if you want to use a pretrained model ; should be set to None otherwise
     PRETRAIN_FILE = None #"pretrain_2.pkl"
 
-    # Train parametersz
+    # Train parameters
 
     n_epochs = 10
     batch_size = 64
@@ -226,13 +229,16 @@ if __name__ == "__main__":
     n_classes = len(np.unique(y_test))
 
     train_labels = np.zeros(shape=(len(y_train), n_classes))
+
     X_pretrain = np.concatenate((X_train, X_test), axis=0)
 
     # one-hot encoding
     index = []
     for i in range(len(y_train)):
         train_labels[i][y_train[i]] = 1.
-
+        if y_train[i] in PRETRAIN_DIGITS:
+            index.append(i)
+    X_pretrain = X_train[np.array(index)]
     # make the images binary
     for i in range(len(X_pretrain)):
         X_pretrain[i] = (X_pretrain[i] > np.max(X_pretrain[i] / 2)) * 1.
@@ -250,6 +256,7 @@ if __name__ == "__main__":
             for _ in range(depth):
                 dbn_size.append(200)
 
+            print("training for n_layers = {}...".format(depth))
             get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
@@ -260,6 +267,7 @@ if __name__ == "__main__":
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
+            print()
             
 
     elif idx == 1:
@@ -267,6 +275,7 @@ if __name__ == "__main__":
         for width in N_HIDDEN_UNITS:
             dbn_size = [input_dim] + [width] * REF_N_HIDDEN_LAYERS
 
+            print("training for layer width = {}...".format(width))
             get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
@@ -277,6 +286,7 @@ if __name__ == "__main__":
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
+            print()
 
     else:
         dbn_size = [input_dim] + [REF_N_HIDDEN_UNITS] * REF_N_HIDDEN_LAYERS
@@ -284,6 +294,7 @@ if __name__ == "__main__":
             size = min(size, X_train.shape[0])
             indices = np.random.choice(np.arange(X_train.shape[0]), size, replace=False)
 
+            print("training for data size = {}...".format(size))
             get_errors(
                 dbn_size,
                 pretrain_set=X_pretrain,
@@ -294,6 +305,7 @@ if __name__ == "__main__":
                 train_params=(n_epochs, batch_size, lr),
                 pretrain_params=(n_epochs_pretrain, batch_size_pretrain, lr_pretrain)
             )
+            print()
 
 
     # Plots

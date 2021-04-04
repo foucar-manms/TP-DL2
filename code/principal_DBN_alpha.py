@@ -164,10 +164,11 @@ class DNNStruct:
 
     def stack_layer(self, dim):
         """ adds a new layer at the end of the stack """
-        in_dim = self.rbm_stack[-1][2].shape[0]
+        in_dim = self.rbm_stack[-1][2].shape[1]
         self.rbm_stack.append(init_RBM(in_dim, dim))
         _, b, w = self.rbm_stack[-1]
         self.parameters.append((w,b))
+        self.size.append(dim)
     
     def get_input_dim(self):
         return self.input_dim
